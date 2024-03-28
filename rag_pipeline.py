@@ -132,7 +132,7 @@ def search_llm(query):
     response_text = model.invoke(prompt)
 
     sources = [doc.metadata.get("source") for doc, _score in results]
-    formatted_response = f"Response: {response_text.content}\n"
+    formatted_response = f"Response: {response_text.content}\nSources: {sources}"
     print(formatted_response)
     return formatted_response
 # Example usage:
