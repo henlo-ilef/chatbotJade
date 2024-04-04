@@ -7,8 +7,11 @@ from reportlab.pdfgen.canvas import Canvas
 import pickle 
 from pathlib import Path
 import streamlit_authenticator as stauth
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.enums import TA_CENTER
 from io import BytesIO
-
 st.set_page_config(page_title="💬PPP Benchmark studies Chatbot")
 
 
@@ -58,8 +61,6 @@ if authentication_status:
         st.sidebar.title(f"Welcome {name}")
         st.title('💬PPP Benchmark studies Chatbot')
         st.write('This chatbot is created using the open-source Mistral and RAG.')
-        authenticator.logout("Logout", "sidebar")
-
 
         # Add two buttons to the sidebar
         if st.button("Questions about existing documents"):
@@ -73,7 +74,7 @@ if authentication_status:
             st.session_state.conduct_button_clicked = True
             # Add a message to the chat history
             st.session_state.messages.append({"role": "assistant", "content": "Let's conduct new benchmark studies. What do you want to know?"})
-
+        authenticator.logout("Logout", "sidebar")
     # Initialize chat history
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -105,29 +106,12 @@ if authentication_status:
             st.markdown(response)
         
 
-        # Add a button to trigger the saving process
-     
        
-
-        # Inside the button callback for "Save as PDF"
-        if st.button("Save as PDF"):
-            # Create a PDF file with the chat history
-            buffer = BytesIO()
-            canvas = Canvas(buffer, pagesize=letter)
-            for message in st.session_state.messages:
-                role = message["role"]
-                content = message["content"]
-                if role == "user":
-                    content = "User: " + content
-                elif role == "assistant":
-                    content = "Assistant: " + content
-                canvas.drawString(10, 750, content)
-                canvas.showPage()
-            canvas.save()
-            
-            # Offer the download of the PDF file
-            buffer.seek(0)
-            st.download_button(label="Download PDF", data=buffer, file_name="chat_history.pdf", mime="application/pdf")
+               
         # Add the assistant's response to chat history
         st.session_state.messages.append({"role": "assistant", "content": response})
+    
+        st.download_button("Download", response, file_name="benchmark_study.pdf", mime="application/pdf")
+
+
 
