@@ -20,20 +20,23 @@ for filename in os.listdir(folder_path):
             document_text.append(page.extract_text())
         texts.append(document_text)
 
-#print(texts)
+print(texts)
 
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-
 class Document:
     def __init__(self, page_content):
         self.page_content = page_content
         self.metadata = {}  # You can add metadata if needed
 
+from langchain.document_loaders import DirectoryLoader
+from langchain.document_loaders import TextLoader
+
 
 def split_text(documents: list[list[str]]):
     text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size = 1000,
         chunk_overlap=0,  # No overlap between chunks
         length_function=len,
         add_start_index=True
@@ -54,21 +57,14 @@ chuncks=split_text(texts)
 
 
 #Embeddings 
-
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_community.embeddings.huggingface import HuggingFaceEmbeddings
 
 GOOGLE_API_KEY="AIzaSyD0R1MAEAyl-2kg7i-LcPS3JE9esaQnEzc"
-embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001",google_api_key=GOOGLE_API_KEY)
-query_embeddings = GoogleGenerativeAIEmbeddings(
-    model="models/embedding-001", task_type="retrieval_query", google_api_key=GOOGLE_API_KEY
-)
-doc_embeddings = GoogleGenerativeAIEmbeddings(
-    model="models/embedding-001", task_type="retrieval_document", google_api_key=GOOGLE_API_KEY
-)
+embeddings = HuggingFaceEmbeddings()
+
 
 
 import shutil
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import Chroma
 
 # Replace with your API key and CHROMA_PATH
@@ -85,7 +81,7 @@ def save_to_chroma(chunks: list[list[str]]):
     documents = [Document(page) for chunk in chunks for page in chunk]
     db = Chroma.from_documents(
         documents,
-        doc_embeddings,
+        embeddings,
         persist_directory=CHROMA_PATH
     )
     db.persist()
@@ -109,13 +105,48 @@ Answer the question based only on the following context:
 ---
 
 Answer the question based on the above context: {question}
+ cette étude de benchmark doit comprendre:
+1. Présentation du projet :
+Ici on présente le projet en générale :
+Les composantes (par Example : longueur si autoroute, …)
+Localisation du projet
+objectifs du projets
+Etc..
+2. Structure contractuelle du projet
+Ici on identifie :
+Les parties prenantes :
+Partenaire privé
+Partenaire public
+Le mode de PPP (concession, joint-venture, PPP a paiement public)
+La structure PPP (BOT, BOO, DBFOM, EPC+F etc….)
+Durée du contrat PPP
+Date de signature du contrat
+Statut du projet (sous construction, en phase de passation de marché ou opérationnel)
+Si le projet est opérationnel il faut préciser la date de mise en exécution si possible
+Le financement du projet
+Portion dette/équité
+Sources de financement
+Coûts d’investissement (CAPEX)
+OPEX (si possible)
+Information sur les revenues si possible (source, montant des revenue généré (ex : tarifs de péage en cas des projets autoroutiers, frais de services, loyer en cas de projets des biens immobiliers etc….))
+Pour chaque projets on développe un graphe qui explique la structure contractuelle (tu peux trouver les exemples de structures dans la database des études de benchmark)
+Leçons tirées/ recommandations/ meilleures pratiques/ erreurs a éviter
+Le but de cette section est de fournir une synthèse concise et éclairante des enseignements clés tirés de l'analyse des études de cas de projets PPP, en mettant l'accent sur les succès, les échecs, les meilleures pratiques et les pièges à éviter. Elle vise à équiper les lecteurs avec des connaissances pratiques et des recommandations actionnables pour la conception, la mise en œuvre, et la gestion de futurs projets PPP. Cette section doit servir de guide pour :
+Identifier et comprendre les facteurs de succès
+Analyser les causes d'échec.
+Formuler des recommandations spécifiques
+Partager les meilleures pratiques
+Souligner les erreurs et pièges à éviter
+Identifier la meilleure structure PPP pour le projet en question (étudié)
+Toutes les conclusions doivent être tirées bien sûr à partir des projets de benchmark étudiées et non simplement des recommandations  généraux, standard et vagues qui s'appliques à n'importe quel projet
+
 
 """
 def search_llm(query):
     # Prepare the DB.
     model = ChatGoogleGenerativeAI(model="gemini-pro",google_api_key=GOOGLE_API_KEY,
             temperature=0.3)
-    embedding_function = GoogleGenerativeAIEmbeddings(model="models/embedding-001",google_api_key=GOOGLE_API_KEY)
+    embedding_function = embeddings
     db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embedding_function)
     query_text= query
     results = db.similarity_search_with_relevance_scores(query_text, k=3)
@@ -130,9 +161,7 @@ def search_llm(query):
 
 
     response_text = model.invoke(prompt)
-
-    sources = [doc.metadata.get("source") for doc, _score in results]
-    formatted_response = f"Response: {response_text.content}\nSources: {sources}"
+    formatted_response = f"Response: {response_text.content}\n"
     print(formatted_response)
     return formatted_response
 # Example usage:

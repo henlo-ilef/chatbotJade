@@ -7,6 +7,8 @@ from reportlab.pdfgen.canvas import Canvas
 import pickle 
 from pathlib import Path
 import streamlit_authenticator as stauth
+from io import BytesIO
+
 st.set_page_config(page_title="💬PPP Benchmark studies Chatbot")
 
 
@@ -43,35 +45,7 @@ if authentication_status:
     # Define the directory where PDFs will be saved
     PDF_DIR = "D:/HenloIlef/2K24/chatbotJade/chatbotJade/allLocal/"
     # Function to save response to PDF
-    def save_to_pdf(response, filename):
-        try:
-            pdf_path = PDF_DIR + filename
-            c = Canvas(pdf_path, pagesize=letter)
-
-            # Define font and font size
-            c.setFont("Helvetica", 12)
-
-            # Split the response into lines
-            lines = response.split("\n")
-
-            # Set initial y coordinate for drawing text
-            y_coordinate = 750
-
-            # Draw each line of the response
-            for line in lines:
-                # Draw the line at the current y coordinate
-                c.drawString(100, y_coordinate, line)
-
-                # Move to the next line
-                y_coordinate -= 20  # Adjust this value based on line spacing
-
-            # Save the PDF file
-            c.save()
-
-            print(f"PDF saved successfully at: {pdf_path}")
-        except Exception as e:
-            print(f"Error occurred while saving PDF: {e}")
-
+    
 
     # Initialize session state
     if "questions_button_clicked" not in st.session_state:
@@ -129,17 +103,31 @@ if authentication_status:
         # Display the response in the chat
         with st.chat_message("assistant"):
             st.markdown(response)
-        # Prompt the user for a filename to save the response as a PDF
-        filename_input = st.text_input("Enter filename (without extension) to save response as PDF:")
-
-        # Add a button to trigger the saving process
-        if st.button("Save as PDF") and filename_input:
-            filename = filename_input.strip()  # Remove leading/trailing whitespaces
-            filename = filename.replace(" ", "_")  # Replace spaces with underscores
-            filename += ".pdf"
-            save_to_pdf(response, filename)
         
 
+        # Add a button to trigger the saving process
+     
+       
+
+        # Inside the button callback for "Save as PDF"
+        if st.button("Save as PDF"):
+            # Create a PDF file with the chat history
+            buffer = BytesIO()
+            canvas = Canvas(buffer, pagesize=letter)
+            for message in st.session_state.messages:
+                role = message["role"]
+                content = message["content"]
+                if role == "user":
+                    content = "User: " + content
+                elif role == "assistant":
+                    content = "Assistant: " + content
+                canvas.drawString(10, 750, content)
+                canvas.showPage()
+            canvas.save()
+            
+            # Offer the download of the PDF file
+            buffer.seek(0)
+            st.download_button(label="Download PDF", data=buffer, file_name="chat_history.pdf", mime="application/pdf")
         # Add the assistant's response to chat history
         st.session_state.messages.append({"role": "assistant", "content": response})
 
