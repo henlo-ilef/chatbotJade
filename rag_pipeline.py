@@ -20,7 +20,7 @@ for filename in os.listdir(folder_path):
             document_text.append(page.extract_text())
         texts.append(document_text)
 
-print(texts)
+
 
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
