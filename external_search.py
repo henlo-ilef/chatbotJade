@@ -26,7 +26,7 @@ config={'max_new_tokens': 12000,
                                 'temperature' :0.2,
                                 'top_k':60,
                                 'top_p':0.95,
-                                'context_length': 17000}
+                                'context_length': 14000}
 llm = CTransformers(model='TheBloke/Mistral-7B-Instruct-v0.2-GGUF',model_file="mistral-7b-instruct-v0.2.Q4_K_M.gguf", config=config)
 
 def finetune_context(query):
@@ -69,6 +69,7 @@ def finetune_context(query):
 
     All conclusions should be drawn from the benchmark projects studied and not simply from general, standard, and vague recommendations that apply to any project.
     """
+    print("started finetuning")
     context = mistral.invoke(query+base_query)
     return context
 
@@ -219,7 +220,8 @@ def get_final_result(query):
         print("starting french correction")
         final_result = correct_french(updated_text).content 
         print("french corrected")
-    return final_result + "\n" +urls
+    return final_result + "\n" + "\n".join(urls)
+
 
 #query = 
 """
