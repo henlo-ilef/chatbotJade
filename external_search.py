@@ -200,7 +200,9 @@ def update_analysis(updated_text,extra_info):
     response = llm_chain.run({"text":text,"extra_info":extra_info})
     return response
 def correct_french(updated_text):
+    print("starting update2")
     final_result = llm_gemini.invoke("Correct the French of this text: "+ updated_text)
+    print("finished update 2 within function")
     return final_result
 
 def get_final_result(query):
@@ -208,17 +210,18 @@ def get_final_result(query):
     print(finetuned_context)
     title = get_project_name(finetuned_context)
     info_title, urls = get_info_title(title)
-    print("infp extracted")
+    print("info extracted")
     updated_text = update_finetuned_result(info_title, finetuned_context)
     print("update 1 done")
     final_result = update_analysis(updated_text,info_title.content)
-    if "é" in final_result:
+    print("update 2 done")
+    if "é" in query:
+        print("starting french correction")
         final_result = correct_french(updated_text).content 
-    return final_result
+        print("french corrected")
+    return final_result + "\n" +urls
 
-query = """
- 
-"""
+#query = 
 """
 finetuned_context = finetune_context(query)
 print("*************FINETUNEDCONTEXT********************\n ",finetuned_context)
