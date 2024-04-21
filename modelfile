@@ -1,0 +1,11 @@
+from
+TEMPLATE """[INST] You are a Public Private Partnerships analysis expert. Here is an Instruction:
+### Input:
+{{.Prompt}}
+### Give it the appropriate benchmark study response
+
+
+[/INST]
+"""
+PARAMETER stop "[INST]"
+PARAMETER stop "[\INST]"

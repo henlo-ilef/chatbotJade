@@ -175,3 +175,11 @@ if authentication_status:
 
 
 
+mistralF = CTransformers(model='katkout2313/mistral-for-becnhmarks-finetunedFinal',model_file="mistral-for-becnhmarks-finetunedFinal-unsloth.Q4_K_M.gguf",
+                            model_type='llama',
+                            config={'max_new_tokens': 2048,
+                                    'temperature' :0.2,
+                                    'top_k':60,
+                                    'top_p':0.95,
+    }
+   
