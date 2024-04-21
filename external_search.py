@@ -33,7 +33,7 @@ def titre(Content):
 # ********************************Fine Tuned Context ********************************
 def get_projects(query):
     template = """<s>[INST] Based on this query:{query} give me 4 Public private partnership projects that can help me conduct benchmark studies. Make sure they are public private partnerships that can help me conduct benchmark studies. Make sure the projects respect what is demanded in the query
-    Only give me the projects titles seperated by a semicolon.     [/INST] </s>
+    Only give me the projects titles seperated by a semicolon. Emphasis on the seperation using a semicolon and not a \n     [/INST] </s>
     """
 
     #### Prompt
@@ -41,7 +41,6 @@ def get_projects(query):
     llm_chain = LLMChain(prompt=prompt, llm=gemini)
     response = llm_chain.run({"query":query})
     projects = response.split(";")
-    projects = response.split("\n")
     return projects
 
 def get_projectPresentation(project):
@@ -220,10 +219,13 @@ def get_response(query):
     texts = []
     sources = []
     images = []
+    i=0
     for project in projects:
         pp = get_projectPresentation(project)
         pc = get_projectContract(project)
         text = project + "\n" + pp + "\n" + pc 
+        print(i)
+        print(text)
         info_title,urls,image = get_info_title(project)
         images.append(image)
         updated_text = update_finetuned_result(info_title,text)
@@ -231,6 +233,7 @@ def get_response(query):
         updated_text += "\n" + "Sources: " + urls
         texts.append(updated_text)
         sources.append(urls)
+        i+=1
     text = "\n".join(texts)
     print("analyzing **************************************************")
     analysis = analyse_finetuned_result(text)
