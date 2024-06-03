@@ -7,7 +7,7 @@ import datetime
 
 # Initialiser Firebase une seule fois
 if not firebase_admin._apps:
-    cred = credentials.Certificate('./jade.json')
+    cred = credentials.Certificate('jade.json')
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()
@@ -40,8 +40,8 @@ def login():
     with st.form("login"):
         st.write("Connexion")
         login_username = st.text_input("Username")
-        login_password = st.text_input("Mot de passe de connexion", type="password")
-        login_button = st.form_submit_button("Se connecter")
+        login_password = st.text_input("Password", type="password")
+        login_button = st.form_submit_button("Login")
 
         if login_button:
             if check_user(login_username, login_password):
@@ -49,22 +49,22 @@ def login():
                 st.session_state['username'] = login_username
                 return True
             else:
-                st.error("Échec de la connexion.")
+                st.error("Connection failed.")
                 return False
 def sign():
     with st.form("signup"):
         st.write("Inscription")
         email = st.text_input("Email")
-        first_name = st.text_input("Prénom")
-        last_name = st.text_input("Nom")
-        username = st.text_input("Nom d'utilisateur")
-        password = st.text_input("Mot de passe", type="password")
-        submit_button = st.form_submit_button("S'inscrire")
+        first_name = st.text_input("First name")
+        last_name = st.text_input("Last name")
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        submit_button = st.form_submit_button("Sign up")
 
         if submit_button:
-            if create_user(email, first_name, last_name, username, password):
-                st.session_state['logged_in'] = True
-                st.success("Inscription réussie ! Vous êtes maintenant connecté.")
+            if create_user(email, first_name, last_name, username, password) !=False:
+                #st.session_state['logged_in'] = True
+                st.success("Registration successful!")
                 return True
             else:
                 return False

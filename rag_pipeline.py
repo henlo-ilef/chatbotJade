@@ -3,11 +3,11 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores import FAISS
 from langchain.memory import ConversationBufferMemory
 import streamlit as st
-
+from langchain_core.output_parsers import StrOutputParser
 import os
 from PyPDF2 import PdfReader
 
-folder_path = "D:/HenloIlef/2K24/chatbotJade/chatbotJade/allLocal"
+folder_path = "allLocal"
 texts = []  # List to store texts of individual documents
 
 # Iterate over files in the folder
@@ -59,7 +59,7 @@ chuncks=split_text(texts)
 #Embeddings 
 from langchain_community.embeddings.huggingface import HuggingFaceEmbeddings
 
-GOOGLE_API_KEY="AIzaSyD0R1MAEAyl-2kg7i-LcPS3JE9esaQnEzc"
+GOOGLE_API_KEY="AIzaSyAo-DLb7NFWacpdJEkW9_ilASVpm-6Wu5A"
 embeddings = HuggingFaceEmbeddings()
 
 
@@ -68,8 +68,8 @@ import shutil
 from langchain_community.vectorstores import Chroma
 
 # Replace with your API key and CHROMA_PATH
-CHROMA_PATH = "D:/HenloIlef/2K24/chatbotJade/chatbotJade/chroma"
-GOOGLE_API_KEY="AIzaSyD0R1MAEAyl-2kg7i-LcPS3JE9esaQnEzc"
+CHROMA_PATH = "chroma"
+GOOGLE_API_KEY="AIzaSyAo-DLb7NFWacpdJEkW9_ilASVpm-6Wu5A"
 api_key="AIzaSyD0R1MAEAyl-2kg7i-LcPS3JE9esaQnEzc"
 
 def save_to_chroma(chunks: list[list[str]]):
@@ -85,6 +85,7 @@ def save_to_chroma(chunks: list[list[str]]):
         persist_directory=CHROMA_PATH
     )
     db.persist()
+    retriever = db.as_retriever()
     print(f"Saved {len(chunks)} chunks to {CHROMA_PATH}")
 
 save_to_chroma(texts)
@@ -105,65 +106,53 @@ Answer the question based only on the following context:
 ---
 
 Answer the question based on the above context: {question}
- cette étude de benchmark doit comprendre:
-1. Présentation du projet :
-Ici on présente le projet en générale :
-Les composantes (par Example : longueur si autoroute, …)
-Localisation du projet
-objectifs du projets
-Etc..
-2. Structure contractuelle du projet
-Ici on identifie :
-Les parties prenantes :
-Partenaire privé
-Partenaire public
-Le mode de PPP (concession, joint-venture, PPP a paiement public)
-La structure PPP (BOT, BOO, DBFOM, EPC+F etc….)
-Durée du contrat PPP
-Date de signature du contrat
-Statut du projet (sous construction, en phase de passation de marché ou opérationnel)
-Si le projet est opérationnel il faut préciser la date de mise en exécution si possible
-Le financement du projet
-Portion dette/équité
-Sources de financement
-Coûts d’investissement (CAPEX)
-OPEX (si possible)
-Information sur les revenues si possible (source, montant des revenue généré (ex : tarifs de péage en cas des projets autoroutiers, frais de services, loyer en cas de projets des biens immobiliers etc….))
-Pour chaque projets on développe un graphe qui explique la structure contractuelle (tu peux trouver les exemples de structures dans la database des études de benchmark)
-Leçons tirées/ recommandations/ meilleures pratiques/ erreurs a éviter
-Le but de cette section est de fournir une synthèse concise et éclairante des enseignements clés tirés de l'analyse des études de cas de projets PPP, en mettant l'accent sur les succès, les échecs, les meilleures pratiques et les pièges à éviter. Elle vise à équiper les lecteurs avec des connaissances pratiques et des recommandations actionnables pour la conception, la mise en œuvre, et la gestion de futurs projets PPP. Cette section doit servir de guide pour :
-Identifier et comprendre les facteurs de succès
-Analyser les causes d'échec.
-Formuler des recommandations spécifiques
-Partager les meilleures pratiques
-Souligner les erreurs et pièges à éviter
-Identifier la meilleure structure PPP pour le projet en question (étudié)
-Toutes les conclusions doivent être tirées bien sûr à partir des projets de benchmark étudiées et non simplement des recommandations  généraux, standard et vagues qui s'appliques à n'importe quel projet
-
 
 """
-def search_llm(query):
+from langchain.chains import create_history_aware_retriever
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.chains import create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
+def search_llm():
     # Prepare the DB.
-    model = ChatGoogleGenerativeAI(model="gemini-pro",google_api_key=GOOGLE_API_KEY,
-            temperature=0.3)
+    model = ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest",google_api_key=GOOGLE_API_KEY,
+            temperature=0.3, convert_system_message_to_human=True)
     embedding_function = embeddings
     db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embedding_function)
-    query_text= query
-    results = db.similarity_search_with_relevance_scores(query_text, k=3)
-    if len(results) == 0 or results[0][1] < 0.7:
-        print(f"Unable to find matching results.")
+    retriever = db.as_retriever()
+
+    contextualize_q_system_prompt = """Given a chat history and the latest user question \
+    which might reference context in the chat history, formulate a standalone question \
+    which can be understood without the chat history. Do NOT answer the question, \
+    just reformulate it if needed and otherwise return it as is."""
+    contextualize_q_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", contextualize_q_system_prompt),
+            MessagesPlaceholder("chat_history"),
+            ("human", "{input}"),
+        ]
+    )
+    history_aware_retriever = create_history_aware_retriever(
+    model, retriever, contextualize_q_prompt
+    )
+    qa_system_prompt = """You are an assistant for question-answering tasks. \
+    Use the following pieces of retrieved context to answer the question. \
+    If you don't know the answer, just say that you don't know. \
+    Use three sentences maximum and keep the answer concise.\
+
+    {context}"""
+    qa_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", qa_system_prompt),
+            MessagesPlaceholder("chat_history"),
+            ("human", "{input}"),
+        ]
+    )
 
 
-    context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
-    prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
-    prompt = prompt_template.format(context=context_text, question=query_text)
-    print(prompt)
+    question_answer_chain = create_stuff_documents_chain(model, qa_prompt)
 
-
-    response_text = model.invoke(prompt)
-    formatted_response = f"Response: {response_text.content}\n"
-    print(formatted_response)
-    return formatted_response
+    rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+    return rag_chain
 # Example usage:
 #query_text = input("Enter a question: ")
 #print(search_llm(query_text))
