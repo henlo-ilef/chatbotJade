@@ -6,4 +6,3 @@ torch
 accelerate
 chromadb
 streamlit
-pickle
